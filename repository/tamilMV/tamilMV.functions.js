@@ -76,7 +76,7 @@ exports.tamilMvMovieFinder = async () => {
         winston.info('tamilMvMovieFinder func call started');
 
         try {
-            var { data } = await axios.get('https://www.1tamilmv.autos/', { headers: config.axiosHeader });
+            var { data } = await axios.get('https://www.1tamilmv.yt/', { headers: config.axiosHeader });
         } catch(error) {
             winston.error('tamilMvMovieFinder Function - Error in fetching tamilmv mainpage API');
 
@@ -87,7 +87,7 @@ exports.tamilMvMovieFinder = async () => {
 
         const $ = cheerio.load(data);
 
-        // Fetching individual movie details page urls for fetching magnet links
+        // Fetching individual movie details page urls for fetching torrent links
         let movieUrls = $('.ipsWidget_inner.ipsPad.ipsType_richText a').get().map(x => $(x).attr('href'));
 
         // Fetching saved movies
@@ -125,30 +125,30 @@ exports.tamilMvMovieFinder = async () => {
             // winston.info(`MovieName: ${movieName}`);
 
             let movieQualityNames =  S('.cPost_contentWrap a').get().map(x => $(x).text());
-            let movieMagnetLinks = S('.cPost_contentWrap a').get().map(x => $(x).attr('href'));
+            let movieTorrentLinks = S('a[data-fileext="torrent"]').get().map(x => $(x).attr('href'));
 
             let strippedMovieName = movieName.split(' (')[0];
             let telegramMessage = `<b><a href='${item}'>${movieName}</a></b>\n\n\n`;
 
             movieQualityNames = filterArrayOfStrings(movieQualityNames, strippedMovieName, true);
-            movieMagnetLinks = filterArrayOfStrings(movieMagnetLinks, 'magnet:');
+            movieTorrentLinks = filterArrayOfStrings(movieTorrentLinks, '.torrent');
 
             movieDetails[movieId] = {
                 name: movieName,
                 link: item,
-                magnetLinks: [] 
+                torrentLinks: [] 
             };
 
-            // Skip Movies with no magnet links
-            if (!movieMagnetLinks.length) continue;
+            // Skip Movies with no torrent links
+            if (!movieTorrentLinks.length) continue;
 
-            movieMagnetLinks.forEach((item, index) => {
-                movieDetails[movieId].magnetLinks.push({
+            movieTorrentLinks.forEach((torrentLink, index) => {
+                movieDetails[movieId].torrentLinks.push({
                     name: movieQualityNames[index],
-                    url: item
+                    url: torrentLink
                 });
 
-                telegramMessage = telegramMessage + `${movieQualityNames[index]}<a href='https://mvrff5.deta.dev/?url=${encodeURIComponent(item)}'> Magnet Link 🧲</a>\n\n`;
+                telegramMessage = telegramMessage + `${movieQualityNames[index]} <br> <a>${torrentLink}</a>\n\n`;
             });
 
             let telegramResponse = await telegram.sendMessage(telegramMessage);
